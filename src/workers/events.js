@@ -2,8 +2,23 @@ import "dotenv/config";
 import { Worker } from "bullmq";
 import { fetchOne, updateEvent } from "../services/events.js";
 import axios from "axios";
-import { connection, queue } from "../queues/events.js";
+import { connection, eventDlq, queue } from "../queues/events.js";
 import { maxEventQueueAttempts } from "../config/constants.js";
+
+const eventDlqPush = async (job, error, retryable = true) => {
+    const lastAttempt = job.attemptsMade >= job.opts.attempts - 1;
+    if (lastAttempt || !retryable) {
+        await eventDlq.add('event',
+            {
+                eventId: job.data.id,
+                originalJobId: job.id,
+                attempts: job.attemptsMade,
+                failedAt: new Date().toISOString(),
+                error: error.message
+            });
+    }
+    console.log(`Job ${job.id}, pushed to DLQ`);
+}
 
 const worker = new Worker(
     queue,
@@ -48,6 +63,7 @@ const worker = new Worker(
             }
 
             if (!retryable) {
+                eventDlqPush(job, err, false);
                 await updateEvent(event.id, { status: 'failed' });
                 return {
                     skipped: true,
@@ -82,6 +98,7 @@ worker.on('error', (error) => {
     console.log(`Worker error`);
 });
 
-worker.on('failed', (job, error) => {
+worker.on('failed', async (job, error) => {
     console.error(`Job ${job?.id} failed:`);
+    await eventDlqPush(job, error);
 });

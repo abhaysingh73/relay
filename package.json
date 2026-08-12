@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node src/app.js",
     "worker": "node ./src/workers/events.js",
+    "dlq": "node ./src/scripts/inspect-event-dlq.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "type": "module",

@@ -1,13 +1,12 @@
 import "dotenv/config";
 import { Worker } from "bullmq";
-import { fetchOne } from "../services/events.js";
+import { fetchOne, updateEvent } from "../services/events.js";
 import axios from "axios";
 
 const worker = new Worker(
     'events',
     async (job) => {
         console.log("Processing job:", job.id);
-        console.log("Job data:", job.data);
 
         const event = await fetchOne(job.data?.id);
 
@@ -23,8 +22,9 @@ const worker = new Worker(
                 status
             };
         }
-
         const response = await axios.post(webhookUrl, payload);
+
+        await updateEvent(event.id, { status: 'delivered' });
 
         return {
             sent: true,
@@ -39,7 +39,7 @@ const worker = new Worker(
     }
 );
 
-worker.on('completed', (job, result) => {
+worker.on('completed', async (job, result) => {
     console.log(`Job ${job.id}, completed`, result);
 });
 

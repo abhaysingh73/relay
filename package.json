@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "node src/app.js",
+    "worker": "node ./src/workers/events.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "type": "module",

@@ -12,17 +12,77 @@ datasource db {
   provider = "postgresql"
 }
 
-enum EventStatus {
+enum DeliveryStatus {
   queued
   delivered
   failed
 }
 
 model Event {
-  id Int @id @default(autoincrement())
-  event String
-  webhookUrl String
-  payload Json @db.JsonB
-  status EventStatus @default(queued)
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  eventName String
+  payload   Json     @db.JsonB
   createdAt DateTime @default(now()) @db.Timestamptz
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  deliveries Delivery[]
+}
+
+model Tenant {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  events     Event[]
+  endpoints  Endpoint[]
+  apikeys    ApiKey[]
+  deliveries Delivery[]
+}
+
+model Endpoint {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  url       String
+  secret    String
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  tenant               Tenant                @relation(fields: [tenantId], references: [id])
+  deliveries           Delivery[]
+  webhookSubscriptions WebhookSubscription[]
+}
+
+model ApiKey {
+  id        Int       @id @default(autoincrement())
+  tenantId  Int
+  keyHash   String    @unique
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  revokedAt DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model Delivery {
+  id         Int            @id @default(autoincrement())
+  tenantId   Int
+  endpointId Int
+  eventId    Int
+  status     DeliveryStatus
+  attempts   Int
+  createdAt  DateTime       @default(now()) @db.Timestamptz
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  endpoint Endpoint @relation(fields: [endpointId], references: [id])
+  event    Event    @relation(fields: [eventId], references: [id])
+}
+
+model WebhookSubscription {
+  id         Int      @id @default(autoincrement())
+  endpointId Int
+  eventName  String
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  endpoint Endpoint @relation(fields: [endpointId], references: [id])
+
+  @@unique([endpointId, eventName])
 }

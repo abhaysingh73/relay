@@ -1,9 +1,9 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
-import crypto from "node:crypto";
 
 import { createTenant } from "../services/tenants.js";
 import { createApiKey } from "../services/apiKeys.js";
+import { generateKey, hash } from "../utils/crypto.js";
 
 const { values } = parseArgs({
     options: {
@@ -20,8 +20,8 @@ const registerTenant = async () => {
 
     const tenant = await createTenant(values.name);
 
-    const rawApiKey = `relay_${crypto.randomBytes(32).toString('hex')}`;
-    const keyHash = crypto.createHash("sha256").update(rawApiKey).digest("hex");
+    const rawApiKey = generateKey("apiKey");
+    const keyHash = hash(rawApiKey);
     await createApiKey(tenant.id, keyHash);
 
     console.log(`------------- API KEY -------------\n${rawApiKey}\n------------- API KEY -------------`);

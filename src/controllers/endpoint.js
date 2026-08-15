@@ -1,10 +1,10 @@
 import { createEndpoint } from "../services/endpoint.js";
-import { generateKey } from "../utils/crypto.js"
+import { encrypt, generateKey } from "../utils/crypto.js"
 
 export const registerEnpoint = async (req, res) => {
     const secret = generateKey();
-    const endpointData = await createEndpoint(req.tenantId, req.body.url, secret);//secret encryption pending
-
+    const ecnryptedSecret = encrypt(secret);
+    const endpointData = await createEndpoint(req.tenantId, req.body.url, ecnryptedSecret);
     return res.status(200)
         .json({
             id: endpointData.id,

@@ -41,11 +41,11 @@ model Tenant {
 }
 
 model Endpoint {
-  id        Int      @id @default(autoincrement())
-  tenantId  Int
-  url       String
-  secret    String
-  createdAt DateTime @default(now()) @db.Timestamptz
+  id              Int      @id @default(autoincrement())
+  tenantId        Int
+  url             String
+  encryptedSecret String
+  createdAt       DateTime @default(now()) @db.Timestamptz
 
   tenant               Tenant                @relation(fields: [tenantId], references: [id])
   deliveries           Delivery[]

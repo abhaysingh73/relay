@@ -1,22 +1,14 @@
 import Joi from "joi"
 
 export const eventSchema = Joi.object({
-    event: Joi.string()
+    eventName: Joi.string()
         .min(2)
         .required()
         .messages({
-            "string.base": "Event must be a string",
-            "string.empty": "Event cannot be empty",
-            "string.min": "Event must be atleast 2 characters",
-            "any.required": "Event is required"
-        }),
-    webhookUrl: Joi.string()
-        .uri()
-        .required()
-        .messages({
-            "string.uri": "Webhook URL must be a valid URI",
-            "string.empty": "Webhook URL cannot be empty",
-            "any.required": "Webhook URL is required"
+            "string.base": "Event Name must be a string",
+            "string.empty": "Event Name cannot be empty",
+            "string.min": "Event Name must be atleast 2 characters",
+            "any.required": "Event Name is required"
         }),
     payload: Joi.object()
         .min(1)

@@ -51,3 +51,10 @@ export const decrypt = (encryptedSecret) => {
 
     return decrypted.toString("utf-8");
 }
+
+export const hmac = (secret, message) => {
+    return crypto
+        .createHmac("sha256", secret)
+        .update(message, "utf8")
+        .digest("hex");
+}

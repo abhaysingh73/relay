@@ -1,23 +1,24 @@
 import "dotenv/config";
 import { Worker } from "bullmq";
-import { fetchOne, updateEvent } from "../services/events.js";
 import axios from "axios";
 import { connection, eventDlq, queue } from "../queues/events.js";
 import { maxEventQueueAttempts } from "../config/constants.js";
+import { fetchDelivery, updateDeliveryStatus } from "../services/deliveries.js";
+import { decrypt, hmac } from "../utils/crypto.js";
 
 const eventDlqPush = async (job, error, retryable = true) => {
     const lastAttempt = job.attemptsMade >= job.opts.attempts - 1;
     if (lastAttempt || !retryable) {
-        await eventDlq.add('event',
+        await eventDlq.add('delivery',
             {
-                eventId: job.data.id,
+                id: job.data.id,
                 originalJobId: job.id,
                 attempts: job.attemptsMade,
                 failedAt: new Date().toISOString(),
                 error: error.message
             });
+        console.log(`Job ${job.id}, pushed to DLQ`);
     }
-    console.log(`Job ${job.id}, pushed to DLQ`);
 }
 
 const worker = new Worker(
@@ -29,13 +30,19 @@ const worker = new Worker(
             "attempt:",
             job.attemptsMade
         );
-        const event = await fetchOne(job.data?.id);
+        const delivery = await fetchDelivery(job.data?.id);
 
-        if (!event) {
-            throw new Error(`Event not found: ${job.data?.id}`);
+        if (!delivery) {
+            throw new Error(`Delivery not found: ${job.data?.id}`);
         }
 
-        const { status, webhookUrl, payload } = event;
+        const { endpoint, event, status } = delivery;
+        const body = JSON.stringify(event.payload);
+
+        const hmacSign = hmac(
+            decrypt(endpoint.encryptedSecret),
+            body
+        );
 
         if (status !== "queued") {
             return {
@@ -47,7 +54,16 @@ const worker = new Worker(
         let response;
 
         try {
-            response = await axios.post(webhookUrl, payload);
+            response = (await axios.post(
+                endpoint.url,
+                body,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-signature": hmacSign
+                    }
+                }
+            ));
         }
         catch (err) {
             let httpStatus;
@@ -63,8 +79,8 @@ const worker = new Worker(
             }
 
             if (!retryable) {
-                eventDlqPush(job, err, false);
-                await updateEvent(event.id, { status: 'failed' });
+                await eventDlqPush(job, err, false);
+                await updateDeliveryStatus(delivery.id, 'failed');
                 return {
                     skipped: true,
                     httpStatus
@@ -72,13 +88,13 @@ const worker = new Worker(
             }
 
             if (job.attemptsMade > maxEventQueueAttempts - 2) {
-                await updateEvent(event.id, { status: 'failed' });
+                await updateDeliveryStatus(delivery.id, 'failed');
             }
 
             throw err;
         }
 
-        await updateEvent(event.id, { status: 'delivered' });
+        await updateDeliveryStatus(delivery.id, 'delivered');
 
         return {
             sent: true,

@@ -9,7 +9,7 @@ export const createWebhookSubscription = async (tenantId, eventName, endpointId)
 }
 
 export const deleteWebhookSubscription = async (tenantId, id) => {
-    const subscription = await prismaClient.subscription.findFirst({
+    const subscription = await prismaClient.webhookSubscription.findFirst({
         where: {
             id,
             endpoint: {

@@ -11,7 +11,12 @@ export const updateEvent = async (id, data) => {
 export const eventTransaction = async (tenantId, eventName, payload) => {
     return await prismaClient.$transaction(async (tx) => {
         const event = await tx.event.create({ data: { tenantId, eventName, payload } });
-        const subscriptions = await tx.webhookSubscription.findMany({ where: { eventName } });
+        const subscriptions = await tx.webhookSubscription.findMany({
+            where: {
+                eventName,
+                endpoint: { tenantId }
+            }
+        });
         let delivery = [];
         for (let i of subscriptions) {
             delivery.push(await tx.delivery.create({

@@ -41,3 +41,13 @@ export const fetchDeliveries = async () => {
         }
     });
 }
+
+export const incrementDeliveryAttempt = async (id) => {
+    return await prismaClient.delivery.update({
+        where: { id }, data: {
+            attempts: {
+                increment: 1
+            }
+        }
+    })
+}

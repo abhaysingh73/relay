@@ -18,6 +18,12 @@ enum DeliveryStatus {
   failed
 }
 
+enum AttemptStatus {
+  pending
+  success
+  failed
+}
+
 model Event {
   id        Int      @id @default(autoincrement())
   tenantId  Int
@@ -63,17 +69,19 @@ model ApiKey {
 }
 
 model Delivery {
-  id         Int            @id @default(autoincrement())
-  tenantId   Int
-  endpointId Int
-  eventId    Int
-  status     DeliveryStatus
-  attempts   Int
-  createdAt  DateTime       @default(now()) @db.Timestamptz
+  id          Int            @id @default(autoincrement())
+  tenantId    Int
+  endpointId  Int
+  endpointUrl String
+  eventId     Int
+  status      DeliveryStatus
+  attempts    Int
+  createdAt   DateTime       @default(now()) @db.Timestamptz
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id])
-  endpoint Endpoint @relation(fields: [endpointId], references: [id])
-  event    Event    @relation(fields: [eventId], references: [id])
+  tenant         Tenant            @relation(fields: [tenantId], references: [id])
+  endpoint       Endpoint          @relation(fields: [endpointId], references: [id])
+  event          Event             @relation(fields: [eventId], references: [id])
+  attemptHistory DeliveryAttempt[]
 }
 
 model WebhookSubscription {
@@ -85,4 +93,26 @@ model WebhookSubscription {
   endpoint Endpoint @relation(fields: [endpointId], references: [id])
 
   @@unique([endpointId, eventName])
+}
+
+model DeliveryAttempt {
+  id            Int           @id @default(autoincrement())
+  deliveryId    Int
+  attemptNumber Int
+  status        AttemptStatus
+
+  startedAt DateTime  @db.Timestamptz
+  endedAt   DateTime? @db.Timestamptz
+
+  error           String?
+  responseStatus  Int?
+  responseBody    String?
+  responseHeaders Json?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@unique([deliveryId, attemptNumber])
+  @@index([deliveryId])
 }

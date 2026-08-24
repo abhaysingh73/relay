@@ -51,3 +51,33 @@ export const incrementDeliveryAttempt = async (id) => {
         }
     })
 }
+
+export const fetchDeliveryHistory = async (id) => {
+    return prismaClient.delivery.findUnique({
+        where: { id },
+        include: {
+            endpoint: {
+                select: {
+                    id: true,
+                    url: true,
+                    createdAt: true
+                }
+            },
+            event: {
+                select: {
+                    id: true,
+                    eventName: true,
+                    payload: true,
+                    createdAt: true
+                }
+            },
+            tenant: {
+                select: {
+                    id: true,
+                    name: true
+                }
+            },
+            attemptHistory: true
+        }
+    });
+}

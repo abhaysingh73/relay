@@ -53,7 +53,7 @@ const worker = new Worker(
 
         const attemptNumber = job.attemptsMade + 1;
         const startedAt = new Date();
-        
+
         try {
             let response;
 
@@ -80,6 +80,8 @@ const worker = new Worker(
                     responseStatus: err?.response?.status,
                     responseBody: JSON.stringify(err?.response?.data ?? ""),
                     responseHeaders: err?.response?.headers
+                        ? JSON.parse(JSON.stringify(err.response.headers))
+                        : null
                 });
 
                 let httpStatus;
@@ -120,6 +122,8 @@ const worker = new Worker(
                 responseStatus: response?.status,
                 responseBody: JSON.stringify(response?.data ?? ""),
                 responseHeaders: response?.headers
+                    ? JSON.parse(JSON.stringify(response.headers))
+                    : null
             });
 
             await updateDeliveryStatus(delivery.id, 'delivered');

@@ -1,4 +1,4 @@
-import { fetchDeliveries } from "../services/deliveries.js";
+import { fetchDeliveries, fetchDeliveryHistory } from "../services/deliveries.js";
 
 export const getDeliveries = async (req, res) => {
     const deliveries = await fetchDeliveries();
@@ -6,4 +6,12 @@ export const getDeliveries = async (req, res) => {
         .json({
             deliveries
         });
+}
+
+export const getDeliveryHistory = async (req, res) => {
+    const deliveryHistory = await fetchDeliveryHistory(parseInt(req.params.id));
+    return res.status(200)
+        .json({
+            deliveryHistory
+        })
 }
